@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+
+    <style>
+      html, body {
+        height: 100%;
+        margin: 0;
+        width: 100%;
+      }
+
+      canvas.main {
+        display: block;
+      }
+    </style>
+
+    <script id="vertex-shader" type="x-shader/x-vertex">
+      attribute vec2 aVertexPosition;
+      attribute vec2 aTextureCoord;
+
+      varying vec2 vTextureCoord;
+
+      void main(void) {
+        gl_Position = vec4(aVertexPosition, 1.0, 1.0);
+        vTextureCoord = aTextureCoord;
+      }
+    </script>
+
+    <script id="frag-hblur" type="x-shader/x-fragment">
+      precision mediump float;
+
+      varying vec2 vTextureCoord;
+
+      uniform sampler2D uSampler;
+      uniform vec2 uTexelSize;
+
+      const int aRadius = {{aRadius}};
+      float aOffsets[{{aRadius}}];
+      float aWeights[{{aRadius}}];
+
+      const int iRadius = {{iRadius}};
+      float iOffsets[{{iRadius}}];
+      float iWeights[{{iRadius}}];
+
+      void main(void) {
+        {{#each aOffsets}}
+          aOffsets[{{@index}}] = float({{this}});
+        {{/each}}
+        {{#each aWeights}}
+          aWeights[{{@index}}] = float({{this}});
+        {{/each}}
+        {{#each iOffsets}}
+          iOffsets[{{@index}}] = float({{this}});
+        {{/each}}
+        {{#each iWeights}}
+          iWeights[{{@index}}] = float({{this}});
+        {{/each}}
+
+        vec4 val = texture2D(uSampler, vTextureCoord) *
+            vec4(aWeights[0], iWeights[0], 1.0, 1.0);
+        for (int i = 1; i < iRadius; i++) {
+          // This is wrong if aOffsets is not a subset of iOffsets but it means
+          // fewer texture samples
+          vec2 v1 = texture2D(uSampler,
+              vTextureCoord + vec2(iOffsets[i] * uTexelSize.x, 0.0)).xy;
+          vec2 v2 = texture2D(uSampler,
+              vTextureCoord - vec2(iOffsets[i] * uTexelSize.x, 0.0)).xy;
+          vec2 sum = v1 + v2;
+          if (i < aRadius) {
+            val.x += sum.x * aWeights[i];
+          }
+          val.y += sum.y * iWeights[i];
+        }
+
+        gl_FragColor = val;
+      }
+    </script>
+
+    <script id="frag-vblur" type="x-shader/x-fragment">
+      precision mediump float;
+
+      varying vec2 vTextureCoord;
+
+      uniform sampler2D uSampler;
+      uniform vec2 uTexelSize;
+
+      const int aRadius = {{aRadius}};
+      float aOffsets[{{aRadius}}];
+      float aWeights[{{aRadius}}];
+
+      const int iRadius = {{iRadius}};
+      float iOffsets[{{iRadius}}];
+      float iWeights[{{iRadius}}];
+
+      const float delta = {{delta}};
+
+      void main(void) {
+        {{#each aOffsets}}
+          aOffsets[{{@index}}] = float({{this}});
+        {{/each}}
+        {{#each aWeights}}
+          aWeights[{{@index}}] = float({{this}});
+        {{/each}}
+        {{#each iOffsets}}
+          iOffsets[{{@index}}] = float({{this}});
+        {{/each}}
+        {{#each iWeights}}
+          iWeights[{{@index}}] = float({{this}});
+        {{/each}}
+
+        vec4 val = texture2D(uSampler, vTextureCoord) *
+            vec4(aWeights[0], iWeights[0], 1.0, 1.0);
+        for (int i = 1; i < iRadius; i++) {
+          // This is wrong if aOffsets is not a subset of iOffsets but it means
+          // fewer texture samples
+          vec2 v1 = texture2D(uSampler,
+              vTextureCoord + vec2(0.0, iOffsets[i] * uTexelSize.y)).xy;
+          vec2 v2 = texture2D(uSampler,
+              vTextureCoord - vec2(0.0, iOffsets[i] * uTexelSize.y)).xy;
+          vec2 sum = v1 + v2;
+          if (i < aRadius) {
+            val.x += sum.x * aWeights[i];
+          }
+          val.y += sum.y * iWeights[i];
+        }
+
+        gl_FragColor = val;
+      }
+    </script>
+
+    <script id="frag-update" type="x-shader/x-fragment">
+      precision mediump float;
+
+      varying vec2 vTextureCoord;
+
+      const int numScales = {{numScales}};
+
+      uniform sampler2D uScaleSamplers[numScales];
+      uniform float uDeltas[numScales];
+
+      float variation(vec2 vals) {
+        return abs(vals.x - vals.y);
+      }
+
+      float direction(vec2 vals) {
+        if (vals.x > vals.y) {
+          return 1.0;
+        } else {
+          return -1.0;
+        }
+      }
+
+      void main(void) {
+        vec2 bestVals = texture2D(uScaleSamplers[0], vTextureCoord).xy;
+        float bestVar = variation(bestVals);
+        float bestDelta = uDeltas[0];
+
+        for (int i = 1; i < numScales; i++) {
+          vec2 curVals = texture2D(uScaleSamplers[i], vTextureCoord).xy;
+          float curVar = variation(curVals);
+          if (curVar < bestVar) {
+            bestVals = curVals;
+            bestVar = curVar;
+            bestDelta = uDeltas[i];
+          }
+        }
+
+        float val = texture2D(uScaleSamplers[0], vTextureCoord).z;
+        val += direction(bestVals) * bestDelta;
+        val = clamp(val, 0.0, 1.0);
+
+        gl_FragColor = vec4(val, val, val, 1.0);
+      }
+    </script>
+
+    <script id="frag-draw" type="x-shader/x-fragment">
+      precision mediump float;
+
+      varying vec2 vTextureCoord;
+    
+      uniform sampler2D uSampler;
+
+      void main(void) {
+        gl_FragColor = texture2D(uSampler, vTextureCoord);
+      }
+    </script>
+
+    <script type="text/javascript" src="handlebars.js"></script>
+    <script type="text/javascript" src="turing.js"></script>
+  </head>
+
+  <body onload="main()">
+    <canvas class="main"></canvas>
+  </body>
+</html>
