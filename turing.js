@@ -1,8 +1,8 @@
 var gl;
 
 var scales = [
-  {aRadius: 50, iRadius: 100, delta: 0.05, numSym: 3},
-  {aRadius: 10, iRadius: 20, delta: 0.04, numSym: 2},
+  {aRadius: 50, iRadius: 100, delta: 0.05, numSym: 4},
+  {aRadius: 10, iRadius: 20, delta: 0.04, numSym: 3},
   {aRadius: 5, iRadius: 10, delta: 0.03, numSym: 2},
   {aRadius: 2, iRadius: 4, delta: 0.02, numSym: 2},
   {aRadius: 1, iRadius: 2, delta: 0.01, numSym: 2}
@@ -221,6 +221,8 @@ var initShaders = function() {
   updateProgram.deltasUniform = gl.getUniformLocation(updateProgram, "uDeltas");
   updateProgram.symMatricesUniform = gl.getUniformLocation(
       updateProgram, "uSymMatrices");
+  updateProgram.symsUsedUniform = gl.getUniformLocation(
+      updateProgram, "uSymsUsed");
 
   fragmentShader = getShader(gl, "frag-draw");
   drawProgram = gl.createProgram();
@@ -354,7 +356,8 @@ var drawScene = function() {
   }
   gl.uniform1iv(updateProgram.scaleSamplersUniform, scaleSamplers);
   gl.uniform1fv(updateProgram.deltasUniform, deltas);
-  gl.uniformMatrix3fv(updateProgram.symMatricesUniform, symMatrices);
+  gl.uniformMatrix3fv(updateProgram.symMatricesUniform, false, symMatrices);
+  gl.uniform1iv(updateProgram.symsUsedUniform, symsUsed);
 
   gl.bindBuffer(gl.ARRAY_BUFFER, vertexPositionBuffer);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, vertexPositionBuffer.numItems);
