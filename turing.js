@@ -1,11 +1,11 @@
 var gl;
 
 var scales = [
-  {aRadius: 50, iRadius: 100, delta: 0.05},
-  {aRadius: 10, iRadius: 20, delta: 0.04},
-  {aRadius: 5, iRadius: 10, delta: 0.03},
-  {aRadius: 2, iRadius: 4, delta: 0.02},
-  {aRadius: 1, iRadius: 2, delta: 0.01}
+  {aRadius: 50, iRadius: 100, delta: 0.05, numSym: 3},
+  {aRadius: 10, iRadius: 20, delta: 0.04, numSym: 2},
+  {aRadius: 5, iRadius: 10, delta: 0.03, numSym: 2},
+  {aRadius: 2, iRadius: 4, delta: 0.02, numSym: 2},
+  {aRadius: 1, iRadius: 2, delta: 0.01, numSym: 2}
 ];
 
 var scaleSamplers = [], deltas = [];
@@ -30,11 +30,50 @@ var boxBlurOffsets = function(radius) {
   return offsets;
 };
 
+var getSymMatrices = function(numSym, maxSym) {
+  var matrices = [];
+  for (var i = 1; i < maxSym; i++) {
+    if (i < numSym) {
+      var th = i / numSym * 2 * Math.PI;
+      var costh = Math.cos(th);
+      var sinth = Math.sin(th);
+      matrices = matrices.concat([
+          costh, sinth, 0,
+          -sinth, costh, 0,
+          0.5 * (1 - costh + sinth), 0.5 * (1 - sinth - costh), 1
+      ]);
+    } else {
+      matrices = matrices.concat([
+          0, 0, 0,
+          0, 0, 0,
+          0, 0, 0
+      ]);
+    }
+  }
+  return matrices;
+};
+
+var getSymsUsed = function(numSym, maxSym) {
+  var used = [];
+  for (var i = 1; i < maxSym; i++) {
+    used.push(i < numSym);
+  }
+  return used;
+};
+
+var maxSyms = scales[0].numSym;
 scales.forEach(function(s) {
   s.aOffsets = boxBlurOffsets(s.aRadius);
   s.aWeights = boxBlurWeights(s.aRadius);
   s.iOffsets = boxBlurOffsets(s.iRadius);
   s.iWeights = boxBlurWeights(s.iRadius);
+  maxSyms = Math.max(maxSyms, s.numSym);
+});
+
+var symMatrices = [], symsUsed = [];
+scales.forEach(function(s) {
+  symMatrices = symMatrices.concat(getSymMatrices(s.numSym, maxSyms));
+  symsUsed = symsUsed.concat(getSymsUsed(s.numSym, maxSyms));
 });
 
 var blurWeightOffsets = function(radius) {
@@ -168,7 +207,10 @@ var initShaders = function() {
     });
   });
 
-  fragmentShader = getShader(gl, "frag-update", {numScales: scales.length});
+  fragmentShader = getShader(gl, "frag-update", {
+    numScales: scales.length,
+    maxSyms: maxSyms
+  });
   updateProgram = gl.createProgram();
   gl.attachShader(updateProgram, vertexShader);
   gl.attachShader(updateProgram, fragmentShader);
@@ -177,6 +219,8 @@ var initShaders = function() {
   updateProgram.scaleSamplersUniform = gl.getUniformLocation(
       updateProgram, "uScaleSamplers");
   updateProgram.deltasUniform = gl.getUniformLocation(updateProgram, "uDeltas");
+  updateProgram.symMatricesUniform = gl.getUniformLocation(
+      updateProgram, "uSymMatrices");
 
   fragmentShader = getShader(gl, "frag-draw");
   drawProgram = gl.createProgram();
@@ -310,6 +354,7 @@ var drawScene = function() {
   }
   gl.uniform1iv(updateProgram.scaleSamplersUniform, scaleSamplers);
   gl.uniform1fv(updateProgram.deltasUniform, deltas);
+  gl.uniformMatrix3fv(updateProgram.symMatricesUniform, symMatrices);
 
   gl.bindBuffer(gl.ARRAY_BUFFER, vertexPositionBuffer);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, vertexPositionBuffer.numItems);

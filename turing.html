@@ -135,9 +135,15 @@
       varying vec2 vTextureCoord;
 
       const int numScales = {{numScales}};
+      const int maxSyms = {{maxSyms}};
+
+      int numSyms[numScales];
+      int symOffsets[numScales];
 
       uniform sampler2D uScaleSamplers[numScales];
       uniform float uDeltas[numScales];
+      uniform mat3 uSymMatrices[(maxSyms - 1) * numScales];
+      uniform bool uSymsUsed[(maxSyms - 1) * numScales];
 
       float variation(vec2 vals) {
         return abs(vals.x - vals.y);
@@ -152,12 +158,32 @@
       }
 
       void main(void) {
-        vec2 bestVals = texture2D(uScaleSamplers[0], vTextureCoord).xy;
+        float symWeight = 1.0 / float(numSyms[0]);
+        vec2 bestVals =
+            texture2D(uScaleSamplers[0], vTextureCoord).xy * symWeight;
+        for (int i = 0; i < maxSyms - 1; i++) {
+          if (!uSymsUsed[i]) break;
+          mat3 symMatrix = uSymMatrices[i]; 
+          vec2 symCoord = (symMatrix * vec3(vTextureCoord, 1.0)).xy;
+          vec2 symVals = texture2D(uScaleSamplers[0], symCoord).xy;
+          bestVals += symWeight * symVals;
+        }
+
         float bestVar = variation(bestVals);
         float bestDelta = uDeltas[0];
 
         for (int i = 1; i < numScales; i++) {
-          vec2 curVals = texture2D(uScaleSamplers[i], vTextureCoord).xy;
+          symWeight = 1.0 / float(numSyms[i]);
+          vec2 curVals =
+              texture2D(uScaleSamplers[i], vTextureCoord).xy * symWeight;
+          for (int j = 0; j < maxSyms - 1; j++) {
+            if (!uSymsUsed[i * (maxSyms - 1) + j]) break;
+            mat3 symMatrix = uSymMatrices[i * (maxSyms - 1) + j]; 
+            vec2 symCoord = (symMatrix * vec3(vTextureCoord, 1.0)).xy;
+            vec2 symVals = texture2D(uScaleSamplers[i], symCoord).xy;
+            curVals += symWeight * symVals;
+          }
+
           float curVar = variation(curVals);
           if (curVar < bestVar) {
             bestVals = curVals;
