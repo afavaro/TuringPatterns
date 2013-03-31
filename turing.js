@@ -1,11 +1,10 @@
 var gl;
 
 var scales = [
-  {aRadius: 50, iRadius: 100, delta: 0.05, numSym: 3},
+  {aRadius: 50, iRadius: 100, delta: 0.05, numSym: 2},
   {aRadius: 10, iRadius: 20, delta: 0.04, numSym: 2},
   {aRadius: 5, iRadius: 10, delta: 0.03, numSym: 2},
-  {aRadius: 2, iRadius: 4, delta: 0.02, numSym: 2},
-  {aRadius: 1, iRadius: 2, delta: 0.01, numSym: 2}
+  {aRadius: 2, iRadius: 4, delta: 0.02, numSym: 2}
 ];
 
 var scaleSamplers = [], deltas = [];
@@ -255,12 +254,12 @@ var resizeCanvas = function() {
 var prepProgram = function(program, target) {
   gl.useProgram(program);
 
-  if (program == drawProgram) {
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-  } else {
+  if (target) {
     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0,
       gl.TEXTURE_2D, target, 0);
+  } else {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 
   gl.bindBuffer(gl.ARRAY_BUFFER, vertexPositionBuffer);
@@ -325,16 +324,14 @@ var requestAnimationFrame =
   window.webkitRequestAnimationFrame ||
   window.msRequestAnimationFrame;
 
-var fps = 20, mspf = 1000 / fps;
 var lastFrame = new Date();
 var tick = function() {
-  var now = new Date();
-  var dFrame = now - lastFrame;
+  drawScene();
 
-  //if (dFrame > mspf) {
-    drawScene();
-    lastFrame = now - (dFrame % mspf);
-  //}
+  var now = new Date();
+  var fps = (1000 / (now - lastFrame)).toFixed(1);
+  document.querySelector("#fps span").innerText = fps;
+  lastFrame = now;
 
   requestAnimationFrame(tick);
 };
@@ -355,4 +352,10 @@ var main = function() {
 window.addEventListener("resize", function() {
   resizeCanvas();
   drawScene();
+});
+
+
+document.addEventListener("click", function(event) {
+  var header = document.querySelector("header");
+  header.style.display = header.style.display != "none"? "none" : "";
 });

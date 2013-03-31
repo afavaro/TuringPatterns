@@ -5,6 +5,7 @@
 
     <style>
       html, body {
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
         height: 100%;
         margin: 0;
         width: 100%;
@@ -12,6 +13,25 @@
 
       canvas.main {
         display: block;
+      }
+
+      header {
+        background: rgba(0, 0, 0, 0.8);
+        border-radius: 30px;
+        color: white;
+        padding: 20px;
+        position: absolute;
+        margin: 10px;
+        max-width: 50%;
+      }
+
+      header a {
+        color: white;
+      }
+
+      #fps {
+        float: right;
+        font-size: 11px;
       }
     </style>
 
@@ -180,6 +200,25 @@
   </head>
 
   <body onload="main()">
+    <header>
+      <hgroup>
+        <h1>Cyclic Symmetric Multi-Scale Turing Patterns in WebGL</h1>
+        <h3>by Alex Favaro</h3>
+      </hgroup>
+      <p>
+        Based on the
+        <a href="http://www.jonathanmccabe.com/Cyclic_Symmetric_Multi-Scale_Turing_Patterns.pdf">
+          work by Jonathan McCabe.
+        </a>
+      </p>
+      <p>
+        <a href="https://github.com/afavaro/TuringPatterns">
+          Code here.
+        </a>
+      </p>
+      <p>Click anywhere to toggle this description.</p>
+      <div id="fps">FPS: <span></span></div>
+    </header>
     <canvas class="main"></canvas>
   </body>
 </html>
