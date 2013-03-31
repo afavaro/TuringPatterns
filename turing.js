@@ -1,8 +1,8 @@
 var gl;
 
 var scales = [
-  {aRadius: 50, iRadius: 100, delta: 0.05, numSym: 4},
-  {aRadius: 10, iRadius: 20, delta: 0.04, numSym: 3},
+  {aRadius: 50, iRadius: 100, delta: 0.05, numSym: 3},
+  {aRadius: 10, iRadius: 20, delta: 0.04, numSym: 2},
   {aRadius: 5, iRadius: 10, delta: 0.03, numSym: 2},
   {aRadius: 2, iRadius: 4, delta: 0.02, numSym: 2},
   {aRadius: 1, iRadius: 2, delta: 0.01, numSym: 2}
@@ -13,22 +13,6 @@ for (var i = 0; i < scales.length; i++) {
   scaleSamplers.push(i);
   deltas.push(scales[i].delta);
 }
-
-var boxBlurWeights = function(radius) {
-  var weights = [];
-  for (var i = 0; i < radius; i ++) {
-    weights.push(1 / (radius * 2));
-  }
-  return weights;
-};
-
-var boxBlurOffsets = function(radius) {
-  var offsets = [0];
-  for (var i = 1; i < radius; i++) {
-    offsets.push(i * 2 - 0.5);
-  }
-  return offsets;
-};
 
 var getSymMatrices = function(numSym, maxSym) {
   var matrices = [];
@@ -63,10 +47,6 @@ var getSymsUsed = function(numSym, maxSym) {
 
 var maxSyms = scales[0].numSym;
 scales.forEach(function(s) {
-  s.aOffsets = boxBlurOffsets(s.aRadius);
-  s.aWeights = boxBlurWeights(s.aRadius);
-  s.iOffsets = boxBlurOffsets(s.iRadius);
-  s.iWeights = boxBlurWeights(s.iRadius);
   maxSyms = Math.max(maxSyms, s.numSym);
 });
 
@@ -75,38 +55,6 @@ scales.forEach(function(s) {
   symMatrices = symMatrices.concat(getSymMatrices(s.numSym, maxSyms));
   symsUsed = symsUsed.concat(getSymsUsed(s.numSym, maxSyms));
 });
-
-var blurWeightOffsets = function(radius) {
-  var extraLevels = Math.floor(radius * 2 / 3);
-
-  var p, weights = [1];
-  for (p = 1; p <= radius * 2 + extraLevels; p++) {
-    var newWeights = [1];
-    for (var i = 0; i < weights.length - 1; i++) {
-      newWeights.push(weights[i] + weights[i + 1]);
-    }
-    newWeights.push(1);
-    weights = newWeights;
-  }
-
-  var extras = Math.ceil((extraLevels + 1) / 2);
-  weights = weights.slice(extras, -extras);
-  var sum = weights.reduce(function(prev, cur) { return prev + cur; });
-  weights = weights
-    .slice(0, Math.ceil(weights.length / 2))
-    .map(function(w) { return w / sum; })
-    .reverse();
-
-  var linWeights = weights.length % 2? [weights[0]] : [];
-  var offsets = weights.length % 2? [0] : [];
-  for (var i = weights.length % 2; i < weights.length - 1; i += 2) {
-    var lw = weights[i] + weights[i + 1];
-    linWeights.push(lw);
-    offsets.push((i * weights[i] + (i + 1) * weights[i + 1]) / lw);
-  }
-
-  return [linWeights, offsets];
-};
 
 var getRandomInt = function(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -125,7 +73,7 @@ var getShader = function(gl, id, renderData) {
   }
 
   if (renderData) {
-    source = Handlebars.compile(source)(renderData);
+    source = Mustache.render(source, renderData);
   }
 
   var shader;

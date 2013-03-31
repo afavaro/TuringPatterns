@@ -36,41 +36,25 @@
       uniform vec2 uTexelSize;
 
       const int aRadius = {{aRadius}};
-      float aOffsets[{{aRadius}}];
-      float aWeights[{{aRadius}}];
-
       const int iRadius = {{iRadius}};
-      float iOffsets[{{iRadius}}];
-      float iWeights[{{iRadius}}];
+
+      const float aWeight = 1.0 / (2.0 * float(aRadius) - 1.0);
+      const float iWeight = 1.0 / (2.0 * float(iRadius) - 1.0);
 
       void main(void) {
-        {{#each aOffsets}}
-          aOffsets[{{@index}}] = float({{this}});
-        {{/each}}
-        {{#each aWeights}}
-          aWeights[{{@index}}] = float({{this}});
-        {{/each}}
-        {{#each iOffsets}}
-          iOffsets[{{@index}}] = float({{this}});
-        {{/each}}
-        {{#each iWeights}}
-          iWeights[{{@index}}] = float({{this}});
-        {{/each}}
-
         vec4 val = texture2D(uSampler, vTextureCoord) *
-            vec4(aWeights[0], iWeights[0], 1.0, 1.0);
+            vec4(aWeight, iWeight, 1.0, 1.0);
         for (int i = 1; i < iRadius; i++) {
-          // This is wrong if aOffsets is not a subset of iOffsets but it means
-          // fewer texture samples
+          float offset = 2.0 * float(i) - 0.5;
           vec2 v1 = texture2D(uSampler,
-              vTextureCoord + vec2(iOffsets[i] * uTexelSize.x, 0.0)).xy;
+              vTextureCoord + vec2(offset * uTexelSize.x, 0.0)).xy;
           vec2 v2 = texture2D(uSampler,
-              vTextureCoord - vec2(iOffsets[i] * uTexelSize.x, 0.0)).xy;
+              vTextureCoord - vec2(offset * uTexelSize.x, 0.0)).xy;
           vec2 sum = v1 + v2;
           if (i < aRadius) {
-            val.x += sum.x * aWeights[i];
+            val.x += sum.x * aWeight;
           }
-          val.y += sum.y * iWeights[i];
+          val.y += sum.y * iWeight;
         }
 
         gl_FragColor = val;
@@ -86,43 +70,25 @@
       uniform vec2 uTexelSize;
 
       const int aRadius = {{aRadius}};
-      float aOffsets[{{aRadius}}];
-      float aWeights[{{aRadius}}];
-
       const int iRadius = {{iRadius}};
-      float iOffsets[{{iRadius}}];
-      float iWeights[{{iRadius}}];
 
-      const float delta = {{delta}};
+      const float aWeight = 1.0 / (2.0 * float(aRadius) - 1.0);
+      const float iWeight = 1.0 / (2.0 * float(iRadius) - 1.0);
 
       void main(void) {
-        {{#each aOffsets}}
-          aOffsets[{{@index}}] = float({{this}});
-        {{/each}}
-        {{#each aWeights}}
-          aWeights[{{@index}}] = float({{this}});
-        {{/each}}
-        {{#each iOffsets}}
-          iOffsets[{{@index}}] = float({{this}});
-        {{/each}}
-        {{#each iWeights}}
-          iWeights[{{@index}}] = float({{this}});
-        {{/each}}
-
         vec4 val = texture2D(uSampler, vTextureCoord) *
-            vec4(aWeights[0], iWeights[0], 1.0, 1.0);
+            vec4(aWeight, iWeight, 1.0, 1.0);
         for (int i = 1; i < iRadius; i++) {
-          // This is wrong if aOffsets is not a subset of iOffsets but it means
-          // fewer texture samples
+          float offset = 2.0 * float(i) - 0.5;
           vec2 v1 = texture2D(uSampler,
-              vTextureCoord + vec2(0.0, iOffsets[i] * uTexelSize.y)).xy;
+              vTextureCoord + vec2(0.0, offset * uTexelSize.y)).xy;
           vec2 v2 = texture2D(uSampler,
-              vTextureCoord - vec2(0.0, iOffsets[i] * uTexelSize.y)).xy;
+              vTextureCoord - vec2(0.0, offset * uTexelSize.y)).xy;
           vec2 sum = v1 + v2;
           if (i < aRadius) {
-            val.x += sum.x * aWeights[i];
+            val.x += sum.x * aWeight;
           }
-          val.y += sum.y * iWeights[i];
+          val.y += sum.y * iWeight;
         }
 
         gl_FragColor = val;
@@ -209,7 +175,7 @@
       }
     </script>
 
-    <script type="text/javascript" src="handlebars.js"></script>
+    <script type="text/javascript" src="mustache.js"></script>
     <script type="text/javascript" src="turing.js"></script>
   </head>
 
