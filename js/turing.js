@@ -349,7 +349,7 @@ var tick = function() {
   var now = new Date();
   var fps = (1000 / (now - lastFrame)).toFixed(1);
   if (now - lastFPSUpdate > 1000) {
-    document.querySelector("#fps span").innerText = fps;
+    document.querySelector("#fps span").textContent = fps;
     lastFPSUpdate = now;
   }
   lastFrame = now;
