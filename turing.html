@@ -29,6 +29,10 @@
         color: white;
       }
 
+      header summary {
+        cursor: pointer;
+      }
+
       #fps {
         float: right;
         font-size: 11px;
@@ -125,6 +129,7 @@
 
       uniform sampler2D uScaleSamplers[numScales];
       uniform float uDeltas[numScales];
+
       uniform mat3 uSymMatrices[(maxSyms - 1) * numScales];
       uniform bool uSymsUsed[(maxSyms - 1) * numScales];
 
@@ -141,23 +146,13 @@
       }
 
       void main(void) {
-        vec2 bestVals = texture2D(uScaleSamplers[0], vTextureCoord).xy;
-        int numSyms = 1;
-        for (int i = 0; i < maxSyms - 1; i++) {
-          if (!uSymsUsed[i]) break;
-          mat3 symMatrix = uSymMatrices[i]; 
-          vec2 symCoord = (symMatrix * vec3(vTextureCoord, 1.0)).xy;
-          bestVals += texture2D(uScaleSamplers[0], symCoord).xy;
-          numSyms++;
-        }
-        bestVals /= float(numSyms);
-
-        float bestVar = variation(bestVals);
-        float bestDelta = uDeltas[0];
-
-        for (int i = 1; i < numScales; i++) {
+        vec2 bestVals;
+        float bestVar = 2.0;
+        float bestDelta;
+        for (int i = 0; i < numScales; i++) {
           vec2 curVals = texture2D(uScaleSamplers[i], vTextureCoord).xy;
-          numSyms = 1;
+
+          int numSyms = 1;
           for (int j = 0; j < maxSyms - 1; j++) {
             if (!uSymsUsed[i * (maxSyms - 1) + j]) break;
             mat3 symMatrix = uSymMatrices[i * (maxSyms - 1) + j]; 
@@ -169,8 +164,8 @@
 
           float curVar = variation(curVals);
           if (curVar < bestVar) {
-            bestVals = curVals;
             bestVar = curVar;
+            bestVals = curVals;
             bestDelta = uDeltas[i];
           }
         }
@@ -217,6 +212,27 @@
         </a>
       </p>
       <p>Click anywhere to toggle this description.</p>
+      <details>
+        <summary>Settings</summary>
+        <section>
+          <h5>Scales</h5>
+          <label>
+            <input type="checkbox" data-index="0" checked> Large
+          </label>
+          <br>
+          <label>
+            <input type="checkbox" data-index="1" checked> Medium
+          </label>
+          <br>
+          <label>
+            <input type="checkbox" data-index="2" checked> Small
+          </label>
+          <br>
+          <label>
+            <input type="checkbox" data-index="3" checked> Tiny
+          </label>
+        </section>
+      </details>
       <div id="fps">FPS: <span></span></div>
     </header>
     <canvas class="main"></canvas>

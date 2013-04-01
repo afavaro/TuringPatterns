@@ -1,17 +1,13 @@
 var gl;
 
-var scales = [
+var SCALE_DEFS = [
   {aRadius: 50, iRadius: 100, delta: 0.05, numSym: 2},
   {aRadius: 10, iRadius: 20, delta: 0.04, numSym: 2},
   {aRadius: 5, iRadius: 10, delta: 0.03, numSym: 2},
   {aRadius: 2, iRadius: 4, delta: 0.02, numSym: 2}
 ];
 
-var scaleSamplers = [], deltas = [];
-for (var i = 0; i < scales.length; i++) {
-  scaleSamplers.push(i);
-  deltas.push(scales[i].delta);
-}
+var scales = SCALE_DEFS.slice(0);
 
 var getSymMatrices = function(numSym, maxSym) {
   var matrices = [];
@@ -44,16 +40,23 @@ var getSymsUsed = function(numSym, maxSym) {
   return used;
 };
 
-var maxSyms = scales[0].numSym;
-scales.forEach(function(s) {
-  maxSyms = Math.max(maxSyms, s.numSym);
-});
+var scaleSamplers, deltas;
+var symMatrices, symsUsed, maxSyms;
+var initScales = function() {
+  scaleSamplers = [], deltas = [], maxSyms = 0;
+  for (var i = 0; i < scales.length; i++) {
+    scaleSamplers.push(i);
+    deltas.push(scales[i].delta);
+    maxSyms = Math.max(maxSyms, scales[i].numSym);
+  }
 
-var symMatrices = [], symsUsed = [];
-scales.forEach(function(s) {
-  symMatrices = symMatrices.concat(getSymMatrices(s.numSym, maxSyms));
-  symsUsed = symsUsed.concat(getSymsUsed(s.numSym, maxSyms));
-});
+  symMatrices = [], symsUsed = [];
+  scales.forEach(function(s) {
+    symMatrices = symMatrices.concat(getSymMatrices(s.numSym, maxSyms));
+    symsUsed = symsUsed.concat(getSymsUsed(s.numSym, maxSyms));
+  });
+};
+initScales();
 
 var getRandomInt = function(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -131,6 +134,29 @@ var initProgram = function(program) {
     gl.enableVertexAttribArray(program.textureCoordAttribute);
 };
 
+var updateShader;
+var initUpdateProgram = function(program) {
+  if (updateShader) {
+    gl.detachShader(program, updateShader);
+    gl.deleteShader(updateShader);
+  }
+
+  updateShader = getShader(gl, "frag-update", {
+    numScales: scales.length,
+    maxSyms: maxSyms
+  });
+  gl.attachShader(program, updateShader);
+
+  initProgram(program);
+  program.scaleSamplersUniform = gl.getUniformLocation(
+      program, "uScaleSamplers");
+  program.deltasUniform = gl.getUniformLocation(program, "uDeltas");
+  program.symMatricesUniform = gl.getUniformLocation(
+      program, "uSymMatrices");
+  program.symsUsedUniform = gl.getUniformLocation(
+      program, "uSymsUsed");
+};
+
 var updateProgram, drawProgram;
 var initShaders = function() {
   var vertexShader = getShader(gl, "vertex-shader");
@@ -154,22 +180,9 @@ var initShaders = function() {
     });
   });
 
-  fragmentShader = getShader(gl, "frag-update", {
-    numScales: scales.length,
-    maxSyms: maxSyms
-  });
   updateProgram = gl.createProgram();
   gl.attachShader(updateProgram, vertexShader);
-  gl.attachShader(updateProgram, fragmentShader);
-
-  initProgram(updateProgram);
-  updateProgram.scaleSamplersUniform = gl.getUniformLocation(
-      updateProgram, "uScaleSamplers");
-  updateProgram.deltasUniform = gl.getUniformLocation(updateProgram, "uDeltas");
-  updateProgram.symMatricesUniform = gl.getUniformLocation(
-      updateProgram, "uSymMatrices");
-  updateProgram.symsUsedUniform = gl.getUniformLocation(
-      updateProgram, "uSymsUsed");
+  initUpdateProgram(updateProgram);
 
   fragmentShader = getShader(gl, "frag-draw");
   drawProgram = gl.createProgram();
@@ -336,6 +349,40 @@ var tick = function() {
   requestAnimationFrame(tick);
 };
 
+var removeScale = function(index) {
+  index = scales.indexOf(SCALE_DEFS[index]);
+  scales.splice(index, 1);
+  initScales();
+  initUpdateProgram(updateProgram);
+};
+
+var addScale = function(index) {
+  scales.push(SCALE_DEFS[index]);
+  initScales();
+  initUpdateProgram(updateProgram);
+};
+
+var initSettings = function() {
+  var details = document.querySelector("header details");
+  details.addEventListener("click", function(event) {
+    event.stopPropagation();
+  });
+
+  var scaleChecks = details.querySelectorAll('input[type="checkbox"]');
+  Array.prototype.forEach.call(scaleChecks, function(check) {
+    check.addEventListener("change", function() {
+      var checked = details.querySelectorAll('input[type="checkbox"]:checked');
+      if (checked.length == 0) {
+        check.checked = true;
+      } else if (check.checked) {
+        addScale(Number(check.dataset.index));
+      } else {
+        removeScale(Number(check.dataset.index));
+      }
+    });
+  });
+};
+
 var main = function() {
   var canvas = document.querySelector("canvas.main");
   initWebGl(canvas);
@@ -344,6 +391,7 @@ var main = function() {
   initShaders();
   initBuffers();
   initFramebufferTextures();
+  initSettings();
 
   resizeCanvas();
   tick();
