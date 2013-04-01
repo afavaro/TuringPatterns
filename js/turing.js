@@ -191,6 +191,8 @@ var initShaders = function() {
 
   initProgram(drawProgram);
   drawProgram.samplerUniform = gl.getUniformLocation(drawProgram, "uSampler");
+  drawProgram.rgbUniform = gl.getUniformLocation(drawProgram, "uRGB");
+  drawProgram.useHueUniform = gl.getUniformLocation(drawProgram, "uUseHue");
 };
 
 var vertexPositionBuffer, textureCoordBuffer;
@@ -326,6 +328,8 @@ var drawScene = function() {
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, gridTexture);
   gl.uniform1i(drawProgram.samplerUniform, 0);
+  gl.uniform3f(drawProgram.rgbUniform, rgb[0], rgb[1], rgb[2]);
+  gl.uniform1i(drawProgram.useHueUniform, useHue);
 
   gl.bindBuffer(gl.ARRAY_BUFFER, vertexPositionBuffer);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, vertexPositionBuffer.numItems);
@@ -362,6 +366,7 @@ var addScale = function(index) {
   initUpdateProgram(updateProgram);
 };
 
+var rgb = [1, 1, 1], useHue = false;
 var initSettings = function() {
   var details = document.querySelector("header details");
   details.addEventListener("click", function(event) {
@@ -378,6 +383,33 @@ var initSettings = function() {
         addScale(Number(check.dataset.index));
       } else {
         removeScale(Number(check.dataset.index));
+      }
+    });
+  });
+
+  var colors = details.querySelectorAll(".color");
+  Array.prototype.forEach.call(colors, function(color) {
+    color.addEventListener("click", function() {
+      if (color.classList.contains("hue")) {
+        useHue = true;
+      } else {
+        useHue = false;
+      }
+
+      if (color.classList.contains("white")) {
+        rgb = [1, 1, 1];
+      } else if (color.classList.contains("red")) {
+        rgb = [1, 0, 0];
+      } else if (color.classList.contains("green")) {
+        rgb = [0, 1, 0];
+      } else if (color.classList.contains("blue")) {
+        rgb = [0, 0, 1];
+      } else if (color.classList.contains("yellow")) {
+        rgb = [1, 1, 0];
+      } else if (color.classList.contains("magenta")) {
+        rgb = [1, 0, 1];
+      } else if (color.classList.contains("cyan")) {
+        rgb = [0, 1, 1];
       }
     });
   });

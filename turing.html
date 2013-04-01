@@ -33,6 +33,46 @@
         cursor: pointer;
       }
 
+      header section {
+        float: left;
+        margin-right: 50px;
+      }
+
+      .color {
+        cursor: pointer;
+        display: inline-block;
+        height: 20px;
+        margin: 2px;
+        width: 20px;
+      }
+
+      .color.white { background: white; }
+      .color.red { background: red; }
+      .color.green { background: green; }
+      .color.blue { background: blue; }
+      .color.yellow { background: yellow; }
+      .color.magenta { background: rgb(255, 0, 255); }
+      .color.cyan { background: rgb(0, 255, 255); }
+      .color.hue {
+        background: white;
+        background: -moz-linear-gradient( top ,
+            rgba(255, 0, 0, 1) 0%,
+            rgba(255, 255, 0, 1) 15%,
+            rgba(0, 255, 0, 1) 30%,
+            rgba(0, 255, 255, 1) 50%,
+            rgba(0, 0, 255, 1) 65%,
+            rgba(255, 0, 255, 1) 80%,
+            rgba(255, 0, 0, 1) 100%);
+        background: -webkit-gradient(linear,  left top,  left bottom, 
+            color-stop(0%, rgba(255, 0, 0, 1)), 
+            color-stop(15%, rgba(255, 255, 0, 1)),
+            color-stop(30%, rgba(0, 255, 0, 1)),
+            color-stop(50%, rgba(0, 255, 255, 1)),
+            color-stop(65%, rgba(0, 0, 255, 1)),
+            color-stop(80%, rgba(255, 0, 255, 1)),
+            color-stop(100%, rgba(255, 0, 0, 1)));
+      }
+
       #fps {
         float: right;
         font-size: 11px;
@@ -184,9 +224,31 @@
       varying vec2 vTextureCoord;
     
       uniform sampler2D uSampler;
+      uniform vec3 uRGB;
+      uniform bool uUseHue;
 
       void main(void) {
-        gl_FragColor = texture2D(uSampler, vTextureCoord);
+        float val = texture2D(uSampler, vTextureCoord).x;
+
+        if (uUseHue) {
+          float hp = mod(360.0 * val + 120.0, 360.0) / 60.0;
+          float x = 1.0 - abs(mod(hp, 2.0) - 1.0);
+          if (hp < 1.0) {
+            gl_FragColor = vec4(1.0, x, 0.0, 1.0);
+          } else if (hp < 2.0) {
+            gl_FragColor = vec4(x, 1.0, 0.0, 1.0);
+          } else if (hp < 3.0) {
+            gl_FragColor = vec4(0.0, 1.0, x, 1.0);
+          } else if (hp < 4.0) {
+            gl_FragColor = vec4(0.0, x, 1.0, 1.0);
+          } else if (hp < 5.0) {
+            gl_FragColor = vec4(x, 0.0, 1.0, 1.0);
+          } else {
+            gl_FragColor = vec4(1.0, 0.0, x, 1.0);
+          }
+        } else {
+          gl_FragColor = vec4(val * uRGB, 1.0);
+        }
       }
     </script>
 
@@ -231,6 +293,17 @@
           <label>
             <input type="checkbox" data-index="3" checked> Tiny
           </label>
+        </section>
+        <section>
+          <h5>Color</h5>
+          <div class="color white"></div>
+          <div class="color red"></div>
+          <div class="color green"></div>
+          <div class="color blue"></div>
+          <div class="color yellow"></div>
+          <div class="color magenta"></div>
+          <div class="color cyan"></div>
+          <div class="color hue"></div>
         </section>
       </details>
       <div id="fps">FPS: <span></span></div>
