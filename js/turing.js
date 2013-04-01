@@ -342,12 +342,16 @@ var requestAnimationFrame =
   window.msRequestAnimationFrame;
 
 var lastFrame = new Date();
+var lastFPSUpdate = 0;
 var tick = function() {
   drawScene();
 
   var now = new Date();
   var fps = (1000 / (now - lastFrame)).toFixed(1);
-  document.querySelector("#fps span").innerText = fps;
+  if (now - lastFPSUpdate > 1000) {
+    document.querySelector("#fps span").innerText = fps;
+    lastFPSUpdate = now;
+  }
   lastFrame = now;
 
   requestAnimationFrame(tick);
